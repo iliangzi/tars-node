@@ -2,6 +2,7 @@
 
 MachineIp=$(ip addr | grep inet | grep ${INET_NAME} | awk '{print $2;}' | sed 's|/.*$||')
 MachineName=$(cat /etc/hosts | grep ${MachineIp} | awk '{print $2}')
+OLDIPFILE=/data/OldMachineIp
 
 install_node_services(){
 	echo "base services ...."
@@ -20,13 +21,20 @@ install_node_services(){
 
 	if [ ${MOUNT_DATA} = true ];
 	then
-		mkdir -p /data/tarsnode_data && ln -s /data/tarsnode_data /usr/local/app/tars/tarsnode/data
+		mkdir -p /data/tarsnode_data && ln -sn /data/tarsnode_data /usr/local/app/tars/tarsnode/data
+		CHECK=$(mysqlshow --user=${DBUser} --password=${DBPassword} --host=${DBIP} --port=${DBPort} db_tars | grep -v Wildcard | grep -o db_tars)
+		if [[ "$CHECK" = "db_tars" && -f $OLDIPFILE && $(cat $OLDIPFILE) != ${MachineIp} ]]; then
+			OLDIP=$(cat /data/OldMachineIp)
+			mysql -h${DBIP} -P${DBPort} -u${DBUser} -p${DBPassword} -e "USE db_tars; UPDATE t_adapter_conf SET node_name=REPLACE(node_name, '${OLDIP}', '${MachineIp}'), endpoint=REPLACE(endpoint,'${OLDIP}', '${MachineIp}'); UPDATE t_machine_tars_info SET node_name=REPLACE(node_name, '${OLDIP}', '${MachineIp}'); UPDATE t_server_conf SET node_name=REPLACE(node_name, '${OLDIP}', '${MachineIp}'); UPDATE t_server_notifys SET node_name=REPLACE(node_name, '${OLDIP}', '${MachineIp}'), server_id=REPLACE(server_id, '${OLDIP}', '${MachineIp}'); DELETE FROM t_node_info WHERE node_name='${OLDIP}'; DELETE FROM t_registry_info WHERE locator_id LIKE '${OLDIP}:%';"
+			sed -i "s/${OLDIP}/${MachineIp}/g" `grep ${OLDIP} -rl /usr/local/app/tars/tarsnode/*`
+		fi
 	fi
 	
 	chmod u+x tarsnode_install.sh
 	./tarsnode_install.sh
 	
 	echo "* * * * * /usr/local/app/tars/tarsnode/util/monitor.sh" >> /etc/crontab
+	echo ${MachineIp} > /data/OldMachineIp
 }
 
 install_node_services
