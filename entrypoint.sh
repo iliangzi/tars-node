@@ -6,7 +6,7 @@ if [ -d /root/init ];then
 	do
 		if [ -f /root/init/$x ];then
 			chmod u+x /root/init/$x
-			/bin/bash /root/init/$x
+			/bin/bash -x /root/init/$x
 			rm -rf /root/init/$x
 		fi
 	done
