@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #MachineIp=$(ip addr | grep inet | grep ${INET_NAME} | awk '{print $2;}' | sed 's|/.*$||')
-#使用k8s的service，默认和deployment名字一致，deployment名字不能带有-
+#使用k8s的service，默认和deployment名字一致，deployment名字不能带有-字符
 MachineIp=$(echo ${HOSTNAME}|awk -F '-' 'print $1')
 MachineName=$(cat /etc/hosts | grep ${MachineIp} | awk '{print $2}')
 OLDIPFILE=/data/OldMachineIp
